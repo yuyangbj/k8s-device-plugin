@@ -3,13 +3,11 @@
 package main
 
 import (
-	"log"
-	"strings"
-
 	"github.com/NVIDIA/gpu-monitoring-tools/bindings/go/nvml"
-
 	"golang.org/x/net/context"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
+	"log"
+	"strings"
 )
 
 func check(err error) {
@@ -24,8 +22,9 @@ func getDevices() []*pluginapi.Device {
 
 	var devs []*pluginapi.Device
 	for i := uint(0); i < n; i++ {
-		d, err := nvml.NewDeviceLite(i)
+		d, err := nvml.NewDevice(i)
 		check(err)
+		log.Println("Add the ", i, "device, ID: ", d.UUID)
 		devs = append(devs, &pluginapi.Device{
 			ID:     d.UUID,
 			Health: pluginapi.Healthy,

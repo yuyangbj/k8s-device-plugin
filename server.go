@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/NVIDIA/gpu-monitoring-tools/bindings/go/nvml/nvsmi"
 	"log"
 	"net"
 	"os"
@@ -17,7 +18,7 @@ import (
 )
 
 const (
-	resourceName           = "nvidia.com/gpu"
+	resourcePrefix         = "vmware.com/"
 	serverSock             = pluginapi.DevicePluginPath + "nvidia.sock"
 	envDisableHealthChecks = "DP_DISABLE_HEALTHCHECKS"
 	allHealthChecks        = "xids"
@@ -218,12 +219,22 @@ func (m *NvidiaDevicePlugin) Serve() error {
 	}
 	log.Println("Starting to serve on", m.socket)
 
-	err = m.Register(pluginapi.KubeletSocket, resourceName)
-	if err != nil {
-		log.Printf("Could not register device plugin: %s", err)
-		m.Stop()
-		return err
+	for _, d := range m.devs {
+		resource := nvsmi.Query(d.ID, "name")
+		log.Println("resource:", resource)
+		index := strings.LastIndex(resource, " ")
+		name := resource[index+1:]
+		resourceName := resourcePrefix + name
+		log.Println("resourceName:", resourceName)
+
+		err = m.Register(pluginapi.KubeletSocket, resourceName)
+		if err != nil {
+			log.Printf("Could not register device plugin: %s", err)
+			m.Stop()
+			return err
+		}
 	}
+
 	log.Println("Registered device plugin with Kubelet")
 
 	return nil
